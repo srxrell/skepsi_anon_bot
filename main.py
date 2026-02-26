@@ -43,7 +43,7 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return
 
         # Берем ID и чистим его от лишних знаков
-        target_id = int(os.getenv('CHANNEL_ID').strip())
+        target_id = os.getenv('CHANNEL_ID').strip()
         
         # Убираем parse_mode='HTML', чтобы бот не придирался к символам
         full_message = f"{update.message.text}\n\n{SIGNATURE}"
