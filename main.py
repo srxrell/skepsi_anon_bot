@@ -55,7 +55,7 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
     except Exception as e:
         logger.error(f"Ошибка при пересылке: {e}")
-        await update.message.reply_text("❌ Ошибка. Проверь, что бот — админ в канале.")
+        await update.message.reply_text(f"❌ Ошибка {e}")
 
 # --- ЛОГИКА ВЕБХУКА ---
 
