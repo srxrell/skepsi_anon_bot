@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 import asyncio
@@ -38,40 +39,56 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        if not update.message.text:
+        if not update.message or not update.message.text:
             return
         
         full_message = f"{update.message.text}\n\n{SIGNATURE}"
+        
+        # Отправка в канал
         await context.bot.send_message(
             chat_id=CHANNEL_ID,
             text=full_message,
             parse_mode='HTML'
         )
-        await update.message.reply_text("Ваше признание опубликовано анонимно!")
+        await update.message.reply_text("✅ Опубликовано!")
+        logger.info(f"Сообщение отправлено в канал {CHANNEL_ID}")
+        
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка при отправке.")
+        logger.error(f"Ошибка при пересылке: {e}")
+        await update.message.reply_text("❌ Ошибка. Проверь, что бот — админ в канале.")
 
 # --- ЛОГИКА ВЕБХУКА ---
 
+# Создаем приложение заранее
+application = Application.builder().token(BOT_TOKEN).build()
+
 async def telegram_webhook(request):
-    """Обработка входящих обновлений от Telegram"""
-    json_string = await request.body()
-    update = Update.de_json(data=asyncio.loads(json_string), bot=application.bot)
-    await application.process_update(update)
-    return Response(status_code=200)
+    try:
+        # Читаем тело запроса
+        body = await request.body()
+        data = json.loads(body.decode('utf-8'))
+        
+        # Превращаем JSON в объект Update
+        update = Update.de_json(data, application.bot)
+        
+        # Обрабатываем обновление
+        await application.process_update(update)
+        
+        return Response("OK", status_code=200)
+    except Exception as e:
+        logger.error(f"КРИТИЧЕСКАЯ ОШИБКА ВЕБХУКА: {e}", exc_info=True)
+        # Возвращаем 200 даже при ошибке, чтобы Telegram не спамил повторами при баге в коде
+        return Response("Error handled", status_code=200)
 
 async def health_check(request):
-    """Для проверки того, что сервис жив"""
     return Response("I am alive", status_code=200)
 
-# Инициализация приложения Telegram
-application = Application.builder().token(BOT_TOKEN).build()
+# Добавляем обработчики
 application.add_handler(CommandHandler("start", start_command))
 application.add_handler(CommandHandler("help", help_command))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_channel))
 
-# Настройка веб-сервера Starlette
+# Настройка веб-сервера
 starlette_app = Starlette(
     routes=[
         Route("/webhook", telegram_webhook, methods=["POST"]),
@@ -80,10 +97,11 @@ starlette_app = Starlette(
 )
 
 async def main():
-    # Установка вебхука в Telegram
-    await application.bot.set_webhook(url=f"{RENDER_EXTERNAL_URL}/webhook")
+    # Установка вебхука
+    webhook_url = f"{RENDER_EXTERNAL_URL}/webhook"
+    await application.bot.set_webhook(url=webhook_url)
+    logger.info(f"Вебхук установлен на: {webhook_url}")
     
-    # Запуск сервера
     port = int(os.getenv("PORT", 8080))
     config = uvicorn.Config(starlette_app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
@@ -94,4 +112,7 @@ async def main():
         await application.stop()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
