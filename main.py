@@ -38,35 +38,34 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+
+    # Берем ID из переменных и чистим его на всякий случай
+    raw_id = os.getenv('CHANNEL_ID').strip()
+    target_id = int(raw_id)
+
     try:
-        if not update.message or not update.message.text:
-            return
-        
+        # ПРОВЕРКА 1: Видит ли бот этот чат вообще?
+        chat = await context.bot.get_chat(target_id)
+        logger.info(f"Бот видит чат: {chat.title} ({chat.type})")
+
+        # ПРОВЕРКА 2: Какие у бота там права?
+        member = await context.bot.get_chat_member(target_id, context.bot.id)
+        logger.info(f"Статус бота: {member.status}")
+
         full_message = f"{update.message.text}\n\n{SIGNATURE}"
         
-        # Отправка в канал
         await context.bot.send_message(
-            chat_id=int(CHANNEL_ID),
+            chat_id=target_id,
             text=full_message,
             parse_mode='HTML'
         )
         await update.message.reply_text("✅ Опубликовано!")
-        logger.info(f"Сообщение отправлено в канал {CHANNEL_ID}")
         
     except Exception as e:
-        if not update.message or not update.message.text:
-            return
-        
-        full_message = f"{update.message.text}\n\n{SIGNATURE}"
-        
-        # Отправка в канал
-        await context.bot.send_message(
-            chat_id=int(CHANNEL_ID),
-            text=full_message,
-            parse_mode='HTML'
-        )
-        await update.message.reply_text("✅ Опубликовано!")
-        logger.info(f"Сообщение отправлено в канал {CHANNEL_ID}")
+        logger.error(f"АГА! ВОТ ОШИБКА: {e}")
+        await update.message.reply_text(f"❌ Ошибка: {e}\nТвой ID в системе: {target_id}")
 
 # --- ЛОГИКА ВЕБХУКА ---
 
