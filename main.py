@@ -54,8 +54,19 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
         logger.info(f"Сообщение отправлено в канал {CHANNEL_ID}")
         
     except Exception as e:
-        logger.error(f"Ошибка при пересылке: {e}")
-        await update.message.reply_text(f"❌ Ошибка {e}")
+        if not update.message or not update.message.text:
+            return
+        
+        full_message = f"{update.message.text}\n\n{SIGNATURE}"
+        
+        # Отправка в канал
+        await context.bot.send_message(
+            chat_id=int(CHANNEL_ID),
+            text=full_message,
+            parse_mode='HTML'
+        )
+        await update.message.reply_text("✅ Опубликовано!")
+        logger.info(f"Сообщение отправлено в канал {CHANNEL_ID}")
 
 # --- ЛОГИКА ВЕБХУКА ---
 
