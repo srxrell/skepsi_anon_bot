@@ -46,7 +46,7 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         # Отправка в канал
         await context.bot.send_message(
-            chat_id=CHANNEL_ID,
+            chat_id=int(CHANNEL_ID),
             text=full_message,
             parse_mode='HTML'
         )
