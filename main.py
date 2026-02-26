@@ -38,35 +38,28 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
-
-    # Берем ID из переменных и чистим его на всякий случай
-    raw_id = os.getenv('CHANNEL_ID').strip()
-    target_id = int(raw_id)
-
     try:
-        # ПРОВЕРКА 1: Видит ли бот этот чат вообще?
-        chat = await context.bot.get_chat(target_id)
-        logger.info(f"Бот видит чат: {chat.title} ({chat.type})")
+        if not update.message or not update.message.text:
+            return
 
-        # ПРОВЕРКА 2: Какие у бота там права?
-        member = await context.bot.get_chat_member(target_id, context.bot.id)
-        logger.info(f"Статус бота: {member.status}")
-
+        # Берем ID и чистим его от лишних знаков
+        target_id = int(os.getenv('CHANNEL_ID').strip())
+        
+        # Убираем parse_mode='HTML', чтобы бот не придирался к символам
         full_message = f"{update.message.text}\n\n{SIGNATURE}"
         
         await context.bot.send_message(
             chat_id=target_id,
-            text=full_message,
-            parse_mode='HTML'
+            text=full_message
+            # Мы убрали parse_mode здесь!
         )
+        
         await update.message.reply_text("✅ Опубликовано!")
         
     except Exception as e:
-        logger.error(f"АГА! ВОТ ОШИБКА: {e}")
-        await update.message.reply_text(f"❌ Ошибка: {e}\nТвой ID в системе: {target_id}")
-
+        # Если всё равно ошибка, выводим её полностью
+        await update.message.reply_text(f"❌ Ошибка отправки: {e}")
+        logger.error(f"Ошибка API: {e}")
 # --- ЛОГИКА ВЕБХУКА ---
 
 # Создаем приложение заранее
