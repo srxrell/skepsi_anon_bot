@@ -9,29 +9,29 @@ from starlette.routing import Route
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
-# Настройка логирования
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+# В ЖОПУ ЛОГИРОВАНИЕ
+#logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+#logger = logging.getLogger(__name__)
 
-# Константы
 SIGNATURE = "•★•@SKEPSIanon_bot #тейк•★•"
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
-ADMIN_FORUM_ID = os.getenv('ADMIN_FORUM_ID') # ID форума
-TOPIC_ID = os.getenv('TOPIC_ID') # ID топика (может быть None, если кидать в общий)
+ADMIN_FORUM_ID = os.getenv('ADMIN_FORUM_ID')
+TOPIC_ID = os.getenv('TOPIC_ID')
 RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL')
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Отправь мне текст, и он уйдет на модерацию.")
+    await update.message.reply_text("Вас приветствует официальный бот Skepsi Confession! Здесь с помощью него вы можете выложить свою исповедь в канал!")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Чтобы опубликовать тейк, он должен соблюдать правила:\n\n1. Не должен содержать спам\n\n2.Не содержит оскорбления чей-то личности, расы, религии и прочее.\n\n3.Не содержит троллинг\n\n4.Сообщения не по теме канала также не будут рассматриваться!")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Принимает сообщение от пользователя и шлет админам на форум"""
     if not update.message or not update.message.text:
         return
 
     user_text = update.message.text
     
-    # Кнопки модерации
     keyboard = [
         [
             InlineKeyboardButton("✅ Разрешить", callback_data="pub_yes"),
@@ -41,30 +41,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     try:
-        # Шлем админам в топик форума
         await context.bot.send_message(
             chat_id=ADMIN_FORUM_ID,
             message_thread_id=int(TOPIC_ID) if TOPIC_ID else None,
-            text=f"📥 **Новый запрос:**\n\n{user_text}",
+            text=f"**Опаньки, новый запрос:**\n\n{user_text}",
             reply_markup=reply_markup,
             parse_mode='Markdown'
         )
-        await update.message.reply_text("📥 Сообщение отправлено на модерацию. Ожидайте.")
+        await update.message.reply_text("Ваш текст был отправлен модераторам. Пожалуйста подождите")
     except Exception as e:
-        logger.error(f"Ошибка при отправке админам: {e}")
+        #logger.error(f"Ошибка при отправке админам: {e}")
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка кнопок Да/Нет"""
     query = update.callback_query
     await query.answer()
 
-    # Достаем текст из сообщения (убираем заголовок "Новый запрос:")
-    original_text = query.message.text.replace("Новый запрос:", "").strip()
+    original_text = query.message.text.replace("Опаньки, новый запрос:", "").strip()
 
     if query.data == "pub_yes":
         try:
-            # Публикуем в канал
             full_message = f"{original_text}\n\n{SIGNATURE}"
             await context.bot.send_message(
                 chat_id=CHANNEL_ID,
@@ -77,7 +73,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "pub_no":
         await query.edit_message_text(text=f"🗑 Отклонено модератором.\n\n{original_text}")
 
-# --- Инициализация и Вебхук ---
 
 application = Application.builder().token(BOT_TOKEN).build()
 
