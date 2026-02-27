@@ -43,7 +43,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Шлем админам в топик форума
         await context.bot.send_message(
-            chat_id=int(ADMIN_FORUM_ID),
+            chat_id=ADMIN_FORUM_ID,
             message_thread_id=int(TOPIC_ID) if TOPIC_ID else None,
             text=f"📥 **Новый запрос:**\n\n{user_text}",
             reply_markup=reply_markup,
@@ -67,7 +67,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Публикуем в канал
             full_message = f"{original_text}\n\n{SIGNATURE}"
             await context.bot.send_message(
-                chat_id=int(CHANNEL_ID),
+                chat_id=CHANNEL_ID,
                 text=full_message
             )
             await query.edit_message_text(text=f"✅ Опубликовано в канале!\n\n{original_text}")
